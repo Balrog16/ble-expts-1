@@ -82,6 +82,41 @@ std::vector<std::string> split(const std::string &str,
   return tokens;
 }
 
+std::string pretty_print_macaddr(uint64_t addr) {
+
+  int8_t i;
+  uint8_t p;
+  std::ostringstream str;
+  for (i = 5; i >= 0; i--) {
+    p = (uint8_t)(addr >> (CHAR_BIT * i));
+    str << std::hex << std::setw(2) << static_cast<int>(p)
+        << (i == 0 ? ' ' : ':');
+  }
+  return str.str();
+}
+
+std::vector<uint8_t>
+parseManufacturerData(BluetoothLEAdvertisement advertisement) {
+  if (advertisement.ManufacturerData().Size() == 0)
+    return std::vector<uint8_t>();
+
+  auto manufacturerData = advertisement.ManufacturerData().GetAt(0);
+  // FIXME Compat with REG_DWORD_BIG_ENDIAN
+  uint8_t *prefix = uint16_t_union{manufacturerData.CompanyId()}.bytes;
+  auto result = std::vector<uint8_t>{prefix, prefix + sizeof(uint16_t_union)};
+
+  auto data = to_bytevc(manufacturerData.Data());
+  result.insert(result.end(), data.begin(), data.end());
+
+  std::cout << "Company: "
+            << ((idToCompany.count(manufacturerData.CompanyId()) > 0)
+                    ? idToCompany.at(manufacturerData.CompanyId())
+                    : "Not yet in the table --raise a ticket")
+            << std::endl;
+
+  return result;
+}
+
 bool checkRadio() {
 
   bool retVal = false;
@@ -165,8 +200,10 @@ void bleCentral::StartScan() {
 
     // Create a BluetoothLEAdverstisementFilter Obj
     bleAdvFilterObj = BluetoothLEAdvertisementFilter();
-    // Fill it up with localName if available 
-    bleAdvFilterObj.Advertisement().LocalName(winrt::to_hstring("Tiberius"));
+    // Fill it up with localName if available
+    if (peripheralName.has_value())
+      bleAdvFilterObj.Advertisement().LocalName(
+          winrt::to_hstring(peripheralName.value()));
     // Create the object and register the delegate
     bluetoothLEWatcher = BluetoothLEAdvertisementWatcher(bleAdvFilterObj);
     bluetoothLEWatcherReceivedToken = bluetoothLEWatcher.Received(
@@ -177,12 +214,39 @@ void bleCentral::StartScan() {
 
 void bleCentral::BluetoothLEWatcher_Received(
     BluetoothLEAdvertisementWatcher sender,
-    BluetoothLEAdvertisementReceivedEventArgs args) {}
+    BluetoothLEAdvertisementReceivedEventArgs args) {
+
+  OutputDebugString(
+      (L"Received " + winrt::to_hstring(args.BluetoothAddress()) + L"\n")
+          .c_str());
+
+  std::string sLocalName;
+  if (args.Advertisement().LocalName().empty())
+    sLocalName = "unknown device";
+  else
+    sLocalName = winrt::to_string(args.Advertisement().LocalName()).c_str();
+
+  std::vector<std::string> sInfo = {
+      ("name " + sLocalName),
+      ("device ID " + pretty_print_macaddr(args.BluetoothAddress())),
+      ("rssi " + std::to_string(args.RawSignalStrengthInDBm())).c_str()};
+
+  std::cout << "------------------------" << std::endl;
+  for (auto &str : sInfo)
+    std::cout << str << std::endl;
+  std::cout << "------------------------" << std::endl;
+}
 
 int main(int argc, char *argv[]) {
   std::cout << "Device to work with... " << argv[1] << std::endl;
-  /*if (checkRadio())
-      std::cout << "BLE Radio found!!" << std::endl;*/
+
+  if (checkRadio()) {
+    bleCentral bleCentralDevice;
+    bleCentralDevice.StartScan();
+    while (1)
+      ;
+  }
+  
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
