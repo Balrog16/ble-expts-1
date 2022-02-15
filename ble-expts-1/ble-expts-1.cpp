@@ -78,7 +78,43 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
 	return tokens;
 }
 
+class bleCentral {
 
+public:
+	bleCentral();
+	virtual ~bleCentral();
+	void StartScan();
+	void StopScan();
+	void DiscoverServicesnChars(uint64_t bleaddress);
+	std::vector<uint8_t> ReadChar(std::string servID, std::string charID);
+	std::vector<uint8_t> WriteChar(std::string servID, std::string charID, std::string vWrite);
+	void CheckEnableReadNotify(std::string servID, std::string charID);
+	void charProperty(GattCharacteristicProperties charProp);
+
+
+private:
+
+	BluetoothLEAdvertisementWatcher bluetoothLEWatcher{ nullptr };
+	BluetoothLEAdvertisementFilter bleAdvFilterObj{ nullptr };
+	winrt::event_token bluetoothLEWatcherReceivedToken;
+	winrt::event_token bluetoothLEWatcherOnValueChangedToken;
+
+	// Delegate
+	void BluetoothLEWatcher_Received(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args);
+
+	winrt::fire_and_forget ConnectAsync(uint64_t bluetoothAddress);
+	// Delegate
+	void BluetoothLEDevice_ConnectionStatusChanged(BluetoothLEDevice sender, IInspectable args);
+
+	//Delegate 
+	void OnCharValChanged(GattCharacteristic gattChar,
+		GattValueChangedEventArgs const& eventargs);
+	// Connection status
+	std::optional<bool> bConnected;
+	GattDeviceServicesResult servicesResult{ 0 };
+	BluetoothLEDevice leDev{ 0 };
+
+};
 
 bool checkRadio() {
 
