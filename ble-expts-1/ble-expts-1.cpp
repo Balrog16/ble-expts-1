@@ -220,6 +220,8 @@ void bleCentral::BluetoothLEWatcher_Received(
       (L"Received " + winrt::to_hstring(args.BluetoothAddress()) + L"\n")
           .c_str());
 
+  auto manufacturer_data = parseManufacturerData(args.Advertisement());
+
   std::string sLocalName;
   if (args.Advertisement().LocalName().empty())
     sLocalName = "unknown device";
@@ -241,7 +243,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Device to work with... " << argv[1] << std::endl;
 
   if (checkRadio()) {
-    bleCentral bleCentralDevice;
+    bleCentral bleCentralDevice("Elsa");
     bleCentralDevice.StartScan();
     while (1)
       ;
