@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Device to work with... " << argv[1] << std::endl;
 
   if (checkRadio()) {
-    bleCentral bleCentralDevice("Elsa");
+    bleCentral bleCentralDevice("SDA-RTU-Wireless");
     bleCentralDevice.StartScan();
     while (1)
       ;
