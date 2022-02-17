@@ -206,6 +206,7 @@ void bleCentral::StartScan() {
           winrt::to_hstring(peripheralName.value()));
     // Create the object and register the delegate
     bluetoothLEWatcher = BluetoothLEAdvertisementWatcher(bleAdvFilterObj);
+    bluetoothLEWatcher.AllowExtendedAdvertisements(TRUE);
     bluetoothLEWatcherReceivedToken = bluetoothLEWatcher.Received(
         {this, &bleCentral::BluetoothLEWatcher_Received});
   }
@@ -243,7 +244,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Device to work with... " << argv[1] << std::endl;
 
   if (checkRadio()) {
-    bleCentral bleCentralDevice("SDA-RTU-Wireless");
+    bleCentral bleCentralDevice("Elsa_and_Ana");
     bleCentralDevice.StartScan();
     while (1)
       ;
